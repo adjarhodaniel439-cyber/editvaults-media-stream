@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import VideoCard from "@/components/VideoCard";
 import AboutSection from "@/components/AboutSection";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 interface Video {
@@ -106,11 +107,36 @@ const Index = () => {
         return category?.name.toLowerCase() === activeCategory.toLowerCase();
       });
 
+  const categoryButtons = [
+    { id: "all", label: "All" },
+    { id: "anime", label: "Anime" },
+    { id: "music", label: "Music" },
+    { id: "movies", label: "Movies" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      <Navigation activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+      <Navigation />
 
       <main className="container mx-auto px-4 py-8">
+        {/* Category Filter Buttons */}
+        <div className="flex flex-wrap gap-3 mb-8 justify-center">
+          {categoryButtons.map((category) => (
+            <Button
+              key={category.id}
+              onClick={() => setActiveCategory(category.id)}
+              variant={activeCategory === category.id ? "default" : "outline"}
+              className={
+                activeCategory === category.id
+                  ? "bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
+                  : ""
+              }
+            >
+              {category.label}
+            </Button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />

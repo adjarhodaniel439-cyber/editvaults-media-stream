@@ -1,17 +1,13 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.jpeg";
+import { Button } from "@/components/ui/button";
 
-interface NavigationProps {
-  activeCategory: string;
-  onCategoryChange: (category: string) => void;
-}
+const Navigation = () => {
+  const location = useLocation();
 
-const Navigation = ({ activeCategory, onCategoryChange }: NavigationProps) => {
-  const categories = [
-    { id: "all", label: "Home" },
-    { id: "anime", label: "Anime" },
-    { id: "music", label: "Music" },
-    { id: "movies", label: "Movies" },
+  const navLinks = [
+    { path: "/", label: "Home" },
+    { path: "/admin", label: "Admin" },
   ];
 
   return (
@@ -26,18 +22,19 @@ const Navigation = ({ activeCategory, onCategoryChange }: NavigationProps) => {
           </Link>
 
           <div className="flex gap-2 md:gap-4">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => onCategoryChange(category.id)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                  activeCategory === category.id
-                    ? "bg-gradient-to-r from-primary to-secondary text-white shadow-lg hover-glow"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                }`}
-              >
-                {category.label}
-              </button>
+            {navLinks.map((link) => (
+              <Link key={link.path} to={link.path}>
+                <Button
+                  variant={location.pathname === link.path ? "default" : "outline"}
+                  className={
+                    location.pathname === link.path
+                      ? "bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+                      : ""
+                  }
+                >
+                  {link.label}
+                </Button>
+              </Link>
             ))}
           </div>
         </div>

@@ -247,6 +247,11 @@ const Admin = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedCategory && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Selected: {categories.find(c => c.id === selectedCategory)?.name}
+                  </p>
+                )}
               </div>
 
               <div>

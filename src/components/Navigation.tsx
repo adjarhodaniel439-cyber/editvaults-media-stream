@@ -1,14 +1,26 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/logo.jpeg";
 import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import ContactDialog from "@/components/ContactDialog";
 
 const Navigation = () => {
   const location = useLocation();
+  const [contactOpen, setContactOpen] = useState(false);
 
-  const navLinks = [
-    { path: "/", label: "Home" },
-    { path: "/admin", label: "Admin" },
-  ];
+  const scrollToAbout = () => {
+    const aboutSection = document.getElementById("about-section");
+    if (aboutSection) {
+      aboutSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
@@ -21,24 +33,30 @@ const Navigation = () => {
             </h1>
           </Link>
 
-          <div className="flex gap-2 md:gap-4">
-            {navLinks.map((link) => (
-              <Link key={link.path} to={link.path}>
-                <Button
-                  variant={location.pathname === link.path ? "default" : "outline"}
-                  className={
-                    location.pathname === link.path
-                      ? "bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-                      : ""
-                  }
-                >
-                  {link.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link to="/admin" className="w-full cursor-pointer">
+                  Admin
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setContactOpen(true)}>
+                Contact Us
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={scrollToAbout}>
+                About Us
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      <ContactDialog open={contactOpen} onOpenChange={setContactOpen} />
     </nav>
   );
 };

@@ -26,7 +26,8 @@ interface Category {
 }
 
 const Index = () => {
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("edits");
+  const [displayCount, setDisplayCount] = useState(5);
   const [videos, setVideos] = useState<Video[]>([]);
   const [characters, setCharacters] = useState<Record<string, Character>>({});
   const [categories, setCategories] = useState<Record<string, Category>>({});
@@ -100,15 +101,22 @@ const Index = () => {
     };
   };
 
-  const filteredVideos = activeCategory === "all"
+  const filteredVideos = activeCategory === "edits"
     ? videos
     : videos.filter((video) => {
         const category = categories[video.category_id];
         return category?.name.toLowerCase() === activeCategory.toLowerCase();
       });
 
+  const displayedVideos = filteredVideos.slice(0, displayCount);
+  const hasMore = displayCount < filteredVideos.length;
+
+  const loadMore = () => {
+    setDisplayCount(prev => prev + 5);
+  };
+
   const categoryButtons = [
-    { id: "all", label: "All" },
+    { id: "edits", label: "Edits" },
     { id: "anime", label: "Anime" },
     { id: "music", label: "Music" },
     { id: "movies", label: "Movies" },
@@ -151,17 +159,31 @@ const Index = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVideos.map((video) => (
-              <VideoCard
-                key={video.id}
-                youtubeLink={video.youtube_link}
-                title={video.title}
-                category={categories[video.category_id]?.name || "Unknown"}
-                characterName={characters[video.character_id]?.name}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayedVideos.map((video) => (
+                <VideoCard
+                  key={video.id}
+                  youtubeLink={video.youtube_link}
+                  title={video.title}
+                  category={categories[video.category_id]?.name || "Unknown"}
+                  characterName={characters[video.character_id]?.name}
+                />
+              ))}
+            </div>
+            
+            {hasMore && (
+              <div className="flex justify-center mt-8">
+                <Button
+                  onClick={loadMore}
+                  size="lg"
+                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
+                >
+                  Load More Edits
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </main>
 

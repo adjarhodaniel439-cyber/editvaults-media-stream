@@ -4,9 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 const AboutSection = () => {
   const socialLinks = [
-    { name: "Instagram", icon: Instagram, url: "#" },
-    { name: "YouTube", icon: Youtube, url: "#" },
-    { name: "WhatsApp", icon: MessageCircle, url: "#" },
+    { name: "Instagram", icon: Instagram, url: "https://www.instagram.com/edit.vaults?igsh=MWZneHMzemFuMDBxbQ%3D%3D&utm_source=qr" },
+    { name: "YouTube", icon: Youtube, url: "https://youtube.com/@editsvault1st?si=2HgbH-Spdp82s4FW" },
+    { name: "TikTok", icon: MessageCircle, url: "https://www.tiktok.com/@edits.vault0?_t=ZS-90f2txXnVJ9&_r=1" },
   ];
 
   return (

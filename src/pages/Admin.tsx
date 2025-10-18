@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,12 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const Admin = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [characters, setCharacters] = useState<any[]>([]);
   
@@ -26,7 +26,6 @@ const Admin = () => {
   const [videoTitle, setVideoTitle] = useState("");
 
   useEffect(() => {
-    checkUser();
     loadCategories();
   }, []);
 
@@ -36,14 +35,13 @@ const Admin = () => {
     }
   }, [selectedCategory]);
 
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
+  const handleLogin = () => {
+    if (password === "editvaults") {
+      setIsAuthenticated(true);
+      toast.success("Access granted!");
+    } else {
+      toast.error("Incorrect password");
     }
-    setUser(session.user);
-    setLoading(false);
   };
 
   const loadCategories = async () => {
@@ -124,30 +122,50 @@ const Admin = () => {
     setSelectedCharacter("");
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
-  if (loading) {
+  if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="flex min-h-[80vh] items-center justify-center px-4">
+          <Card className="w-full max-w-md card-glow">
+            <CardHeader>
+              <CardTitle className="text-2xl font-orbitron text-gradient text-center">
+                Admin Access
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                  placeholder="Enter admin password"
+                />
+              </div>
+              <Button
+                onClick={handleLogin}
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+              >
+                Access Admin Panel
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="container mx-auto max-w-4xl">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-orbitron font-bold text-gradient">
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="container mx-auto max-w-4xl py-12 px-4">
+        <div className="mb-8">
+          <h1 className="text-4xl font-orbitron font-bold text-gradient text-center">
             Admin Panel
           </h1>
-          <Button onClick={handleSignOut} variant="outline">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
         </div>
 
         <div className="grid gap-6">

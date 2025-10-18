@@ -122,6 +122,11 @@ const Admin = () => {
     setSelectedCharacter("");
   };
 
+  const getYouTubeEmbedUrl = (url: string) => {
+    const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background">
@@ -273,6 +278,20 @@ const Admin = () => {
                   placeholder="https://www.youtube.com/watch?v=..."
                 />
               </div>
+
+              {videoLink && getYouTubeEmbedUrl(videoLink) && (
+                <div className="rounded-lg overflow-hidden border border-border">
+                  <div className="aspect-video">
+                    <iframe
+                      src={getYouTubeEmbedUrl(videoLink) || ''}
+                      title="Video Preview"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="video-title">Video Title</Label>

@@ -18,6 +18,7 @@ interface Video {
 interface Character {
   id: string;
   name: string;
+  image_url?: string;
 }
 
 interface Category {
@@ -168,6 +169,7 @@ const Index = () => {
                   title={video.title}
                   category={categories[video.category_id]?.name || "Unknown"}
                   characterName={characters[video.character_id]?.name}
+                  characterImageUrl={characters[video.character_id]?.image_url}
                 />
               ))}
             </div>

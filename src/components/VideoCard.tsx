@@ -8,9 +8,10 @@ interface VideoCardProps {
   title: string;
   category: string;
   characterName?: string;
+  characterImageUrl?: string;
 }
 
-const VideoCard = ({ youtubeLink, title, category, characterName }: VideoCardProps) => {
+const VideoCard = ({ youtubeLink, title, category, characterName, characterImageUrl }: VideoCardProps) => {
   const getYouTubeEmbedUrl = (url: string) => {
     const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -52,9 +53,18 @@ const VideoCard = ({ youtubeLink, title, category, characterName }: VideoCardPro
         </div>
 
         {characterName && (
-          <p className="text-sm text-muted-foreground">
-            {category} • {characterName}
-          </p>
+          <div className="flex items-center gap-3">
+            {characterImageUrl && (
+              <img 
+                src={characterImageUrl} 
+                alt={characterName}
+                className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+              />
+            )}
+            <p className="text-sm text-muted-foreground">
+              {category} • {characterName}
+            </p>
+          </div>
         )}
 
         <div className="bg-muted/50 rounded-lg p-4 space-y-3 border border-border/50">

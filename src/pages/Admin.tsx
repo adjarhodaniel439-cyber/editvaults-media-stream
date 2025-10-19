@@ -217,6 +217,21 @@ const Admin = () => {
                 />
               </div>
 
+              {newCharacterImage && (
+                <div className="rounded-lg overflow-hidden border border-border p-4">
+                  <Label className="mb-2 block">Image Preview</Label>
+                  <img 
+                    src={newCharacterImage} 
+                    alt="Character preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-primary/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      toast.error("Invalid image URL");
+                    }}
+                  />
+                </div>
+              )}
+
               <Button
                 onClick={handleCreateCharacter}
                 className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"

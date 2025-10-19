@@ -27,7 +27,7 @@ interface Category {
 }
 
 const Index = () => {
-  const [activeCategory, setActiveCategory] = useState("edits");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [displayCount, setDisplayCount] = useState(5);
   const [videos, setVideos] = useState<Video[]>([]);
   const [characters, setCharacters] = useState<Record<string, Character>>({});
@@ -102,7 +102,7 @@ const Index = () => {
     };
   };
 
-  const filteredVideos = activeCategory === "edits"
+  const filteredVideos = activeCategory === "all"
     ? videos
     : videos.filter((video) => {
         const category = categories[video.category_id];
@@ -117,10 +117,11 @@ const Index = () => {
   };
 
   const categoryButtons = [
-    { id: "edits", label: "Edits" },
+    { id: "all", label: "All" },
     { id: "anime", label: "Anime" },
     { id: "music", label: "Music" },
     { id: "movies", label: "Movies" },
+    { id: "general", label: "General" },
   ];
 
   return (
@@ -181,7 +182,7 @@ const Index = () => {
                   size="lg"
                   className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
                 >
-                  Load More Edits
+                  Load More Videos
                 </Button>
               </div>
             )}

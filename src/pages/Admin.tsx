@@ -14,7 +14,6 @@ import { z } from "zod";
 
 const characterSchema = z.object({
   name: z.string().trim().min(1, "Character name is required").max(100, "Character name must be less than 100 characters"),
-  image_url: z.string().trim().url("Invalid image URL").optional().or(z.literal("")),
   category_id: z.string().uuid("Invalid category selected"),
 });
 
@@ -36,9 +35,11 @@ const Admin = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCharacter, setSelectedCharacter] = useState("");
   const [newCharacterName, setNewCharacterName] = useState("");
-  const [newCharacterImage, setNewCharacterImage] = useState("");
+  const [newCharacterImage, setNewCharacterImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [videoLink, setVideoLink] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -86,20 +87,69 @@ const Admin = () => {
     setCharacters(data || []);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file");
+        return;
+      }
+      setNewCharacterImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCreateCharacter = async () => {
     try {
+      setUploadingImage(true);
+      
       const validatedData = characterSchema.parse({
         name: newCharacterName,
-        image_url: newCharacterImage,
         category_id: selectedCategory,
       });
+
+      let imageUrl = null;
+
+      // Upload image if provided
+      if (newCharacterImage) {
+        const fileExt = newCharacterImage.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('character-images')
+          .upload(filePath, newCharacterImage, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          toast.error("Failed to upload image");
+          console.error(uploadError);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('character-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+      }
 
       const { error } = await supabase
         .from("characters")
         .insert({
           name: validatedData.name,
           category_id: validatedData.category_id,
-          image_url: validatedData.image_url || null,
+          image_url: imageUrl,
         });
 
       if (error) {
@@ -109,7 +159,8 @@ const Admin = () => {
 
       toast.success("Character created successfully!");
       setNewCharacterName("");
-      setNewCharacterImage("");
+      setNewCharacterImage(null);
+      setImagePreview("");
       loadCharacters(selectedCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -117,6 +168,8 @@ const Admin = () => {
       } else {
         toast.error("Failed to create character");
       }
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -240,35 +293,43 @@ const Admin = () => {
               </div>
 
               <div>
-                <Label htmlFor="char-image">Image URL (optional)</Label>
+                <Label htmlFor="char-image">Character Image (optional)</Label>
                 <Input
                   id="char-image"
-                  value={newCharacterImage}
-                  onChange={(e) => setNewCharacterImage(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Max size: 5MB. Supported formats: JPG, PNG, WEBP
+                </p>
               </div>
 
-              {newCharacterImage && (
+              {imagePreview && (
                 <div className="rounded-lg overflow-hidden border border-border p-4">
                   <Label className="mb-2 block">Image Preview</Label>
                   <img 
-                    src={newCharacterImage} 
+                    src={imagePreview} 
                     alt="Character preview"
                     className="w-24 h-24 rounded-full object-cover border-2 border-primary/20"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      toast.error("Invalid image URL");
-                    }}
                   />
                 </div>
               )}
 
               <Button
                 onClick={handleCreateCharacter}
+                disabled={uploadingImage}
                 className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
               >
-                Create Character
+                {uploadingImage ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Create Character"
+                )}
               </Button>
             </CardContent>
           </Card>

@@ -10,6 +10,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
+
+const characterSchema = z.object({
+  name: z.string().trim().min(1, "Character name is required").max(100, "Character name must be less than 100 characters"),
+  image_url: z.string().trim().url("Invalid image URL").optional().or(z.literal("")),
+  category_id: z.string().uuid("Invalid category selected"),
+});
+
+const videoSchema = z.object({
+  title: z.string().trim().min(1, "Video title is required").max(500, "Video title must be less than 500 characters"),
+  youtube_link: z.string().trim().url("Invalid URL").regex(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/, "Must be a valid YouTube URL"),
+  character_id: z.string().uuid("Invalid character selected"),
+  category_id: z.string().uuid("Invalid category selected"),
+});
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -73,54 +87,73 @@ const Admin = () => {
   };
 
   const handleCreateCharacter = async () => {
-    if (!selectedCategory || !newCharacterName) {
-      toast.error("Please fill all fields");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("characters")
-      .insert({
+    try {
+      const validatedData = characterSchema.parse({
         name: newCharacterName,
+        image_url: newCharacterImage,
         category_id: selectedCategory,
-        image_url: newCharacterImage || null,
       });
 
-    if (error) {
-      toast.error("Failed to create character");
-      return;
-    }
+      const { error } = await supabase
+        .from("characters")
+        .insert({
+          name: validatedData.name,
+          category_id: validatedData.category_id,
+          image_url: validatedData.image_url || null,
+        });
 
-    toast.success("Character created successfully!");
-    setNewCharacterName("");
-    setNewCharacterImage("");
-    loadCharacters(selectedCategory);
+      if (error) {
+        toast.error("Failed to create character");
+        return;
+      }
+
+      toast.success("Character created successfully!");
+      setNewCharacterName("");
+      setNewCharacterImage("");
+      loadCharacters(selectedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error("Failed to create character");
+      }
+    }
   };
 
   const handlePostVideo = async () => {
-    if (!selectedCategory || !selectedCharacter || !videoLink || !videoTitle) {
-      toast.error("Please fill all fields");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("videos")
-      .insert({
-        youtube_link: videoLink,
+    try {
+      const validatedData = videoSchema.parse({
         title: videoTitle,
+        youtube_link: videoLink,
         character_id: selectedCharacter,
         category_id: selectedCategory,
       });
 
-    if (error) {
-      toast.error("Failed to post video");
-      return;
-    }
+      const { error } = await supabase
+        .from("videos")
+        .insert({
+          youtube_link: validatedData.youtube_link,
+          title: validatedData.title,
+          character_id: validatedData.character_id,
+          category_id: validatedData.category_id,
+        });
 
-    toast.success("Video posted successfully!");
-    setVideoLink("");
-    setVideoTitle("");
-    setSelectedCharacter("");
+      if (error) {
+        toast.error("Failed to post video");
+        return;
+      }
+
+      toast.success("Video posted successfully!");
+      setVideoLink("");
+      setVideoTitle("");
+      setSelectedCharacter("");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error("Failed to post video");
+      }
+    }
   };
 
   const getYouTubeEmbedUrl = (url: string) => {

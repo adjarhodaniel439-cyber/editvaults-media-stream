@@ -8,6 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
+import { z } from "zod";
+
+const authSchema = z.object({
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(100, "Password must be less than 100 characters"),
+});
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -32,10 +38,15 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      const validatedData = authSchema.parse({
+        email,
+        password,
+      });
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: validatedData.email,
+          password: validatedData.password,
           options: {
             emailRedirectTo: `${window.location.origin}/admin`,
           },
@@ -45,8 +56,8 @@ const Auth = () => {
         toast.success("Sign up successful! Please check your email for confirmation.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: validatedData.email,
+          password: validatedData.password,
         });
         
         if (error) throw error;
@@ -54,7 +65,11 @@ const Auth = () => {
         navigate("/admin");
       }
     } catch (error: any) {
-      toast.error(error.message || "Authentication failed");
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error(error.message || "Authentication failed");
+      }
     } finally {
       setLoading(false);
     }

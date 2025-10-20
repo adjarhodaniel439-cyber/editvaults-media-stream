@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -182,19 +183,17 @@ const Admin = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="char-category">Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger id="char-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
+                <Label>Category</Label>
+                <RadioGroup value={selectedCategory} onValueChange={setSelectedCategory} className="grid-cols-2 gap-4 mt-2">
+                  {categories.map((cat) => (
+                    <div key={cat.id} className="flex items-center space-x-2">
+                      <RadioGroupItem value={cat.id} id={`char-cat-${cat.id}`} />
+                      <Label htmlFor={`char-cat-${cat.id}`} className="cursor-pointer font-normal">
                         {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               </div>
 
               <div>
@@ -249,24 +248,17 @@ const Admin = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="video-category">Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger id="video-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
+                <Label>Category</Label>
+                <RadioGroup value={selectedCategory} onValueChange={setSelectedCategory} className="grid-cols-2 gap-4 mt-2">
+                  {categories.map((cat) => (
+                    <div key={cat.id} className="flex items-center space-x-2">
+                      <RadioGroupItem value={cat.id} id={`video-cat-${cat.id}`} />
+                      <Label htmlFor={`video-cat-${cat.id}`} className="cursor-pointer font-normal">
                         {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedCategory && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Selected: {categories.find(c => c.id === selectedCategory)?.name}
-                  </p>
-                )}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               </div>
 
               <div>

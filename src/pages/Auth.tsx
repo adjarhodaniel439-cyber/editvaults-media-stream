@@ -38,19 +38,27 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const validatedData = authSchema.parse({
-        email,
-        password,
-      });
-
-      const { error } = await supabase.auth.signInWithPassword({
-  email: validatedData.email,
-  password: validatedData.password,
-});
-
-if (error) throw error;
-toast.success("Sign in successful!");
-navigate("/admin");
+      if (isSignUp) {
+  const { error } = await supabase.auth.signUp({
+    email: validatedData.email,
+    password: validatedData.password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/admin`,
+    },
+  });
+  
+  if (error) throw error;
+  toast.success("Sign up successful! Please check your email for confirmation.");
+} else {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: validatedData.email,
+    password: validatedData.password,
+  });
+  
+  if (error) throw error;
+  toast.success("Sign in successful!");
+  navigate("/admin");
+}
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {

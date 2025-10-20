@@ -121,7 +121,6 @@ const Index = () => {
     { id: "anime", label: "Anime" },
     { id: "music", label: "Music" },
     { id: "movies", label: "Movies" },
-    { id: "general", label: "General" },
   ];
 
   return (

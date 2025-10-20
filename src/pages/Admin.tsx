@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const videoSchema = z.object({
 });
 
 const Admin = () => {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,8 +44,18 @@ const Admin = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
-    loadCategories();
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      setIsAuthenticated(true);
+      loadCategories();
+    } else {
+      navigate("/auth");
+    }
+  };
 
   useEffect(() => {
     if (selectedCategory) {
@@ -51,13 +63,9 @@ const Admin = () => {
     }
   }, [selectedCategory]);
 
-  const handleLogin = () => {
-    if (password === "editvaults") {
-      setIsAuthenticated(true);
-      toast.success("Access granted!");
-    } else {
-      toast.error("Incorrect password");
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
   };
 
   const loadCategories = async () => {
@@ -216,36 +224,13 @@ const Admin = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="flex min-h-[80vh] items-center justify-center px-4">
-          <Card className="w-full max-w-md card-glow">
-            <CardHeader>
-              <CardTitle className="text-2xl font-orbitron text-gradient text-center">
-                Admin Access
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                  placeholder="Enter admin password"
-                />
-              </div>
-              <Button
-                onClick={handleLogin}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-              >
-                Access Admin Panel
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="card-glow w-full max-w-md">
+          <CardContent className="pt-6">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            <p className="text-center mt-4 text-muted-foreground">Checking authentication...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -254,10 +239,13 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto max-w-4xl py-12 px-4">
-        <div className="mb-8">
-          <h1 className="text-4xl font-orbitron font-bold text-gradient text-center">
+        <div className="mb-8 flex justify-between items-center">
+          <h1 className="text-4xl font-orbitron font-bold text-gradient">
             Admin Panel
           </h1>
+          <Button onClick={handleLogout} variant="outline">
+            Logout
+          </Button>
         </div>
 
         <div className="grid gap-6">

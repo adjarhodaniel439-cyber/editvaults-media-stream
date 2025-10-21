@@ -20,7 +20,6 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -38,28 +37,19 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-  const { error } = await supabase.auth.signUp({
-    email: validatedData.email,
-    password: validatedData.password,
-    options: {
-      emailRedirectTo: `${window.location.origin}/admin`,
-    },
-  });
-  
-  if (error) throw error;
-  toast.success("Sign up successful! Please check your email for confirmation.");
-} else {
-  const { error } = await supabase.auth.signInWithPassword({
-    email: validatedData.email,
-    password: validatedData.password,
-  });
-  
-  if (error) throw error;
-  toast.success("Sign in successful!");
-  navigate("/admin");
-}
-      }
+      const validatedData = authSchema.parse({
+        email,
+        password,
+      });
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: validatedData.email,
+        password: validatedData.password,
+      });
+      
+      if (error) throw error;
+      toast.success("Sign in successful!");
+      navigate("/admin");
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -80,7 +70,7 @@ const Auth = () => {
             EDITVAULTS
           </CardTitle>
           <CardDescription>
-            {isSignUp ? "Create an admin account" : "Sign in to admin panel"}
+            Sign in to admin panel
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -120,17 +110,8 @@ const Auth = () => {
                   Please wait...
                 </>
               ) : (
-                isSignUp ? "Sign Up" : "Sign In"
+                "Sign In"
               )}
-            </Button>
-
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
-              {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
             </Button>
           </form>
         </CardContent>

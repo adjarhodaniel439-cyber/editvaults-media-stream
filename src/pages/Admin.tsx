@@ -42,6 +42,8 @@ const Admin = () => {
   const [videoLink, setVideoLink] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [editVideoLink, setEditVideoLink] = useState("");
+  const [editVideoTitle, setEditVideoTitle] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -78,7 +80,8 @@ const Admin = () => {
       toast.error("Failed to load categories");
       return;
     }
-    setCategories(data || []);
+    // Filter out "Edits" category from the character/video selection
+    setCategories((data || []).filter(cat => cat.name !== "Edits"));
   };
 
   const loadCharacters = async (categoryId: string) => {
@@ -213,6 +216,56 @@ const Admin = () => {
         toast.error(error.errors[0].message);
       } else {
         toast.error("Failed to post video");
+      }
+    }
+  };
+
+  const handlePostEdit = async () => {
+    try {
+      const editVideoSchema = z.object({
+        title: z.string().trim().min(1, "Video title is required").max(500, "Video title must be less than 500 characters"),
+        youtube_link: z.string().trim().url("Invalid URL").regex(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/, "Must be a valid YouTube URL"),
+      });
+
+      const validatedData = editVideoSchema.parse({
+        title: editVideoTitle,
+        youtube_link: editVideoLink,
+      });
+
+      // Find the Edits category
+      const { data: editsCategory } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("name", "Edits")
+        .single();
+
+      if (!editsCategory) {
+        toast.error("Edits category not found");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("videos")
+        .insert({
+          youtube_link: validatedData.youtube_link,
+          title: validatedData.title,
+          character_id: null,
+          category_id: editsCategory.id,
+        });
+
+      if (error) {
+        toast.error("Failed to post edit");
+        return;
+      }
+
+      toast.success("Edit posted successfully!");
+      setEditVideoLink("");
+      setEditVideoTitle("");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error("Failed to post edit");
       }
     }
   };
@@ -404,6 +457,57 @@ const Admin = () => {
                 className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
               >
                 Post Video
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="card-glow">
+            <CardHeader>
+              <CardTitle className="text-2xl font-orbitron text-gradient">
+                Post to Edits
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="edit-link">YouTube Link</Label>
+                <Input
+                  id="edit-link"
+                  value={editVideoLink}
+                  onChange={(e) => setEditVideoLink(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+              </div>
+
+              {editVideoLink && getYouTubeEmbedUrl(editVideoLink) && (
+                <div className="rounded-lg overflow-hidden border border-border">
+                  <div className="aspect-video">
+                    <iframe
+                      src={getYouTubeEmbedUrl(editVideoLink) || ''}
+                      title="Edit Preview"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="edit-title">Video Title</Label>
+                <Textarea
+                  id="edit-title"
+                  value={editVideoTitle}
+                  onChange={(e) => setEditVideoTitle(e.target.value)}
+                  placeholder="Enter video title/caption"
+                  rows={3}
+                />
+              </div>
+
+              <Button
+                onClick={handlePostEdit}
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+              >
+                Post Edit
               </Button>
             </CardContent>
           </Card>

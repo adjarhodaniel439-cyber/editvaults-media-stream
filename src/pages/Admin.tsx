@@ -21,7 +21,7 @@ const characterSchema = z.object({
 const videoSchema = z.object({
   title: z.string().trim().min(1, "Video title is required").max(500, "Video title must be less than 500 characters"),
   youtube_link: z.string().trim().url("Invalid URL").regex(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/, "Must be a valid YouTube URL"),
-  character_id: z.string().uuid("Invalid character selected"),
+  character_id: z.string().uuid("Invalid character selected").nullable(),
   category_id: z.string().uuid("Invalid category selected"),
 });
 
@@ -186,7 +186,7 @@ const Admin = () => {
       const validatedData = videoSchema.parse({
         title: videoTitle,
         youtube_link: videoLink,
-        character_id: selectedCharacter,
+        character_id: selectedCharacter || null,
         category_id: selectedCategory,
       });
 
@@ -344,16 +344,17 @@ const Admin = () => {
               </div>
 
               <div>
-                <Label htmlFor="video-character">Character</Label>
+                <Label htmlFor="video-character">Character (Optional - Leave empty for standalone edits)</Label>
                 <Select 
                   value={selectedCharacter} 
                   onValueChange={setSelectedCharacter}
                   disabled={!selectedCategory}
                 >
                   <SelectTrigger id="video-character">
-                    <SelectValue placeholder="Select character" />
+                    <SelectValue placeholder="Select character or leave empty for edits" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">None (Standalone Edit)</SelectItem>
                     {characters.map((char) => (
                       <SelectItem key={char.id} value={char.id}>
                         {char.name}

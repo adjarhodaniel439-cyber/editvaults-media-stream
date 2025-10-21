@@ -67,7 +67,7 @@ export type Database = {
       videos: {
         Row: {
           category_id: string
-          character_id: string
+          character_id: string | null
           created_at: string
           id: string
           title: string
@@ -75,7 +75,7 @@ export type Database = {
         }
         Insert: {
           category_id: string
-          character_id: string
+          character_id?: string | null
           created_at?: string
           id?: string
           title: string
@@ -83,7 +83,7 @@ export type Database = {
         }
         Update: {
           category_id?: string
-          character_id?: string
+          character_id?: string | null
           created_at?: string
           id?: string
           title?: string

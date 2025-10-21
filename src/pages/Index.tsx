@@ -11,7 +11,7 @@ interface Video {
   youtube_link: string;
   title: string;
   category_id: string;
-  character_id: string;
+  character_id: string | null;
   created_at: string;
 }
 
@@ -19,6 +19,11 @@ interface Character {
   id: string;
   name: string;
   image_url?: string;
+  category_id: string;
+}
+
+interface CharacterWithVideos extends Character {
+  videos: Video[];
 }
 
 interface Category {
@@ -27,10 +32,10 @@ interface Category {
 }
 
 const Index = () => {
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("edits");
   const [displayCount, setDisplayCount] = useState(5);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [characters, setCharacters] = useState<Record<string, Character>>({});
+  const [charactersWithVideos, setCharactersWithVideos] = useState<CharacterWithVideos[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [loading, setLoading] = useState(true);
 
@@ -55,27 +60,41 @@ const Index = () => {
       setCategories(categoriesMap);
     }
 
-    // Load characters
+    // Load characters and videos
     const { data: charactersData } = await supabase
       .from("characters")
       .select("*");
     
-    if (charactersData) {
-      const charactersMap: Record<string, Character> = {};
-      charactersData.forEach((char) => {
-        charactersMap[char.id] = char;
-      });
-      setCharacters(charactersMap);
-    }
-
-    // Load videos
     const { data: videosData } = await supabase
       .from("videos")
       .select("*")
       .order("created_at", { ascending: false });
     
-    if (videosData) {
-      setVideos(videosData);
+    if (charactersData && videosData) {
+      // Group videos by character
+      const charactersMap: Record<string, CharacterWithVideos> = {};
+      charactersData.forEach((char) => {
+        charactersMap[char.id] = {
+          ...char,
+          videos: []
+        };
+      });
+      
+      // Separate videos into character videos and standalone edits
+      const characterVideos: Video[] = [];
+      const standaloneVideos: Video[] = [];
+      
+      videosData.forEach((video) => {
+        if (video.character_id && charactersMap[video.character_id]) {
+          charactersMap[video.character_id].videos.push(video);
+          characterVideos.push(video);
+        } else {
+          standaloneVideos.push(video);
+        }
+      });
+      
+      setCharactersWithVideos(Object.values(charactersMap).filter(char => char.videos.length > 0));
+      setVideos(standaloneVideos);
     }
 
     setLoading(false);
@@ -102,22 +121,31 @@ const Index = () => {
     };
   };
 
-  const filteredVideos = activeCategory === "all"
+  const filteredVideos = activeCategory === "edits"
     ? videos
     : videos.filter((video) => {
         const category = categories[video.category_id];
         return category?.name.toLowerCase() === activeCategory.toLowerCase();
       });
 
+  const filteredCharacters = activeCategory === "edits" || activeCategory === "all"
+    ? []
+    : charactersWithVideos.filter((char) => {
+        const category = categories[char.category_id];
+        return category?.name.toLowerCase() === activeCategory.toLowerCase();
+      });
+
   const displayedVideos = filteredVideos.slice(0, displayCount);
-  const hasMore = displayCount < filteredVideos.length;
+  const displayedCharacters = filteredCharacters.slice(0, displayCount);
+  const hasMoreVideos = displayCount < filteredVideos.length;
+  const hasMoreCharacters = displayCount < filteredCharacters.length;
 
   const loadMore = () => {
     setDisplayCount(prev => prev + 5);
   };
 
   const categoryButtons = [
-    { id: "all", label: "All" },
+    { id: "edits", label: "EDITS" },
     { id: "anime", label: "Anime" },
     { id: "music", label: "Music" },
     { id: "movies", label: "Movies" },
@@ -150,42 +178,103 @@ const Index = () => {
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : filteredVideos.length === 0 ? (
-          <div className="text-center py-16">
-            <h2 className="text-2xl font-orbitron text-muted-foreground mb-4">
-              No videos yet
-            </h2>
-            <p className="text-muted-foreground">
-              Check back soon for new content!
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayedVideos.map((video) => (
-                <VideoCard
-                  key={video.id}
-                  youtubeLink={video.youtube_link}
-                  title={video.title}
-                  category={categories[video.category_id]?.name || "Unknown"}
-                  characterName={characters[video.character_id]?.name}
-                  characterImageUrl={characters[video.character_id]?.image_url}
-                />
-              ))}
+        ) : activeCategory === "edits" ? (
+          // EDITS Section - Standalone videos without characters
+          filteredVideos.length === 0 ? (
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-orbitron text-muted-foreground mb-4">
+                No edits yet
+              </h2>
+              <p className="text-muted-foreground">
+                Check back soon for new content!
+              </p>
             </div>
-            
-            {hasMore && (
-              <div className="flex justify-center mt-8">
-                <Button
-                  onClick={loadMore}
-                  size="lg"
-                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
-                >
-                  Load More Videos
-                </Button>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedVideos.map((video) => (
+                  <VideoCard
+                    key={video.id}
+                    youtubeLink={video.youtube_link}
+                    title={video.title}
+                    category={categories[video.category_id]?.name || "Unknown"}
+                  />
+                ))}
               </div>
-            )}
-          </>
+              
+              {hasMoreVideos && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    onClick={loadMore}
+                    size="lg"
+                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
+                  >
+                    Load More Videos
+                  </Button>
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          // Category view - Characters with nested videos
+          filteredCharacters.length === 0 ? (
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-orbitron text-muted-foreground mb-4">
+                No characters yet
+              </h2>
+              <p className="text-muted-foreground">
+                Check back soon for new content!
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-12">
+                {displayedCharacters.map((character) => (
+                  <div key={character.id} className="space-y-6">
+                    {/* Character Header */}
+                    <div className="flex items-center gap-4 border-b border-border pb-4">
+                      {character.image_url && (
+                        <img 
+                          src={character.image_url} 
+                          alt={character.name}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-primary/30"
+                        />
+                      )}
+                      <h2 className="text-3xl font-orbitron font-bold text-gradient">
+                        {character.name}
+                      </h2>
+                    </div>
+                    
+                    {/* Character Videos */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {character.videos.map((video) => (
+                        <VideoCard
+                          key={video.id}
+                          youtubeLink={video.youtube_link}
+                          title={video.title}
+                          category={categories[video.category_id]?.name || "Unknown"}
+                          characterName={character.name}
+                          characterImageUrl={character.image_url}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {hasMoreCharacters && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    onClick={loadMore}
+                    size="lg"
+                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
+                  >
+                    Load More Characters
+                  </Button>
+                </div>
+              )}
+            </>
+          )
         )}
       </main>
 

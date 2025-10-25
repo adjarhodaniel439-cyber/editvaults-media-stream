@@ -38,6 +38,7 @@ const Index = () => {
   const [charactersWithVideos, setCharactersWithVideos] = useState<CharacterWithVideos[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [loading, setLoading] = useState(true);
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithVideos | null>(null);
 
   useEffect(() => {
     loadData();
@@ -144,6 +145,12 @@ const Index = () => {
     setDisplayCount(prev => prev + 5);
   };
 
+  const handleCategoryChange = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    setSelectedCharacter(null);
+    setDisplayCount(5);
+  };
+
   const categoryButtons = [
     { id: "edits", label: "EDITS" },
     { id: "anime", label: "Anime" },
@@ -161,7 +168,7 @@ const Index = () => {
           {categoryButtons.map((category) => (
             <Button
               key={category.id}
-              onClick={() => setActiveCategory(category.id)}
+              onClick={() => handleCategoryChange(category.id)}
               variant={activeCategory === category.id ? "default" : "outline"}
               className={
                 activeCategory === category.id
@@ -215,8 +222,47 @@ const Index = () => {
               )}
             </>
           )
+        ) : selectedCharacter ? (
+          // Character Detail View - Show selected character's videos
+          <div className="space-y-6">
+            <Button
+              onClick={() => setSelectedCharacter(null)}
+              variant="outline"
+              className="mb-4"
+            >
+              ← Back to Characters
+            </Button>
+            
+            {/* Character Header */}
+            <div className="flex items-center gap-4 border-b border-border pb-4">
+              {selectedCharacter.image_url && (
+                <img 
+                  src={selectedCharacter.image_url} 
+                  alt={selectedCharacter.name}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-primary/30"
+                />
+              )}
+              <h2 className="text-4xl font-orbitron font-bold text-gradient">
+                {selectedCharacter.name}
+              </h2>
+            </div>
+            
+            {/* Character Videos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {selectedCharacter.videos.map((video) => (
+                <VideoCard
+                  key={video.id}
+                  youtubeLink={video.youtube_link}
+                  title={video.title}
+                  category={categories[video.category_id]?.name || "Unknown"}
+                  characterName={selectedCharacter.name}
+                  characterImageUrl={selectedCharacter.image_url}
+                />
+              ))}
+            </div>
+          </div>
         ) : (
-          // Category view - Characters with nested videos
+          // Character List View - Show character cards
           filteredCharacters.length === 0 ? (
             <div className="text-center py-16">
               <h2 className="text-2xl font-orbitron text-muted-foreground mb-4">
@@ -228,35 +274,36 @@ const Index = () => {
             </div>
           ) : (
             <>
-              <div className="space-y-12">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {displayedCharacters.map((character) => (
-                  <div key={character.id} className="space-y-6">
-                    {/* Character Header */}
-                    <div className="flex items-center gap-4 border-b border-border pb-4">
-                      {character.image_url && (
+                  <div
+                    key={character.id}
+                    onClick={() => setSelectedCharacter(character)}
+                    className="group cursor-pointer card-glow rounded-lg overflow-hidden bg-card hover:scale-105 transition-transform"
+                  >
+                    <div className="aspect-square relative overflow-hidden">
+                      {character.image_url ? (
                         <img 
                           src={character.image_url} 
                           alt={character.name}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-primary/30"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                         />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                          <span className="text-6xl font-orbitron text-muted-foreground">
+                            {character.name.charAt(0)}
+                          </span>
+                        </div>
                       )}
-                      <h2 className="text-3xl font-orbitron font-bold text-gradient">
-                        {character.name}
-                      </h2>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    
-                    {/* Character Videos */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {character.videos.map((video) => (
-                        <VideoCard
-                          key={video.id}
-                          youtubeLink={video.youtube_link}
-                          title={video.title}
-                          category={categories[video.category_id]?.name || "Unknown"}
-                          characterName={character.name}
-                          characterImageUrl={character.image_url}
-                        />
-                      ))}
+                    <div className="p-4">
+                      <h3 className="text-lg font-orbitron font-bold text-center text-gradient">
+                        {character.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground text-center mt-1">
+                        {character.videos.length} {character.videos.length === 1 ? 'video' : 'videos'}
+                      </p>
                     </div>
                   </div>
                 ))}

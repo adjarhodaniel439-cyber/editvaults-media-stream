@@ -42,7 +42,9 @@ const Index = () => {
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithVideos | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [randomizedCharacters, setRandomizedCharacters] = useState<CharacterWithVideos[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const observerTarget = useRef(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
@@ -137,10 +139,19 @@ const Index = () => {
         return category?.name.toLowerCase() === activeCategory.toLowerCase();
       });
 
+  // Search suggestions - characters that start with the query
+  const searchSuggestions = searchQuery
+    ? randomizedCharacters
+        .filter((char) =>
+          char.name.toLowerCase().startsWith(searchQuery.toLowerCase())
+        )
+        .slice(0, 5)
+    : [];
+
   // Search across all categories
   const searchFilteredCharacters = searchQuery
     ? randomizedCharacters.filter((char) =>
-        char.name.toLowerCase().includes(searchQuery.toLowerCase())
+        char.name.toLowerCase().startsWith(searchQuery.toLowerCase())
       )
     : activeCategory === "edits" || activeCategory === "all"
     ? []
@@ -188,7 +199,26 @@ const Index = () => {
     setSelectedCharacter(null);
     setDisplayCount(12);
     setSearchQuery("");
+    setShowSuggestions(false);
   };
+
+  const handleSuggestionClick = (character: CharacterWithVideos) => {
+    setSelectedCharacter(character);
+    setSearchQuery("");
+    setShowSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const categoryButtons = [
     { id: "edits", label: "EDITS" },
@@ -203,9 +233,9 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-8">
+        <div className="max-w-2xl mx-auto mb-8" ref={searchRef}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
             <Input
               type="text"
               placeholder="Search characters across all categories..."
@@ -213,9 +243,44 @@ const Index = () => {
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setDisplayCount(12);
+                setShowSuggestions(true);
               }}
+              onFocus={() => setShowSuggestions(true)}
               className="pl-10 py-6 text-lg bg-card border-primary/20 focus:border-primary"
             />
+            
+            {/* Search Suggestions Dropdown */}
+            {showSuggestions && searchQuery && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-primary/20 rounded-lg shadow-lg z-50 overflow-hidden">
+                {searchSuggestions.map((character) => (
+                  <div
+                    key={character.id}
+                    onClick={() => handleSuggestionClick(character)}
+                    className="flex items-center gap-3 p-3 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border last:border-b-0"
+                  >
+                    {character.image_url ? (
+                      <img 
+                        src={character.image_url} 
+                        alt={character.name}
+                        className="w-10 h-10 rounded-full object-cover border border-primary/30"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                        <span className="text-lg font-orbitron text-muted-foreground">
+                          {character.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-orbitron font-semibold text-foreground">{character.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {categories[character.category_id]?.name || "Unknown"} • {character.videos.length} {character.videos.length === 1 ? "video" : "videos"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

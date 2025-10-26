@@ -9,8 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 const characterSchema = z.object({
@@ -32,6 +34,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [characters, setCharacters] = useState<any[]>([]);
+  const [latestVideos, setLatestVideos] = useState<any[]>([]);
+  const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
   
   // Form states
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -54,6 +58,7 @@ const Admin = () => {
     if (session) {
       setIsAuthenticated(true);
       loadCategories();
+      loadLatestVideos();
     } else {
       navigate("/auth");
     }
@@ -96,6 +101,46 @@ const Admin = () => {
       return;
     }
     setCharacters(data || []);
+  };
+
+  const loadLatestVideos = async () => {
+    const { data, error } = await supabase
+      .from("videos")
+      .select(`
+        *,
+        characters (name),
+        categories (name)
+      `)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    
+    if (error) {
+      toast.error("Failed to load videos");
+      return;
+    }
+    setLatestVideos(data || []);
+  };
+
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!confirm("Are you sure you want to delete this video?")) {
+      return;
+    }
+
+    setDeletingVideoId(videoId);
+    const { error } = await supabase
+      .from("videos")
+      .delete()
+      .eq("id", videoId);
+
+    if (error) {
+      toast.error("Failed to delete video");
+      setDeletingVideoId(null);
+      return;
+    }
+
+    toast.success("Video deleted successfully!");
+    setDeletingVideoId(null);
+    loadLatestVideos();
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,6 +218,7 @@ const Admin = () => {
       setNewCharacterImage(null);
       setImagePreview("");
       loadCharacters(selectedCategory);
+      loadLatestVideos();
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -211,6 +257,7 @@ const Admin = () => {
       setVideoLink("");
       setVideoTitle("");
       setSelectedCharacter("");
+      loadLatestVideos();
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -261,6 +308,7 @@ const Admin = () => {
       toast.success("Edit posted successfully!");
       setEditVideoLink("");
       setEditVideoTitle("");
+      loadLatestVideos();
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -301,13 +349,19 @@ const Admin = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6">
-          <Card className="card-glow">
-            <CardHeader>
-              <CardTitle className="text-2xl font-orbitron text-gradient">
-                Add New Character
-              </CardTitle>
-            </CardHeader>
+        <Tabs defaultValue="manage" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="manage">Manage Content</TabsTrigger>
+            <TabsTrigger value="latest">Latest Posts</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="manage" className="space-y-6">
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle className="text-2xl font-orbitron text-gradient">
+                  Add New Character
+                </CardTitle>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label>Category</Label>
@@ -511,7 +565,70 @@ const Admin = () => {
               </Button>
             </CardContent>
           </Card>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="latest">
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle className="text-2xl font-orbitron text-gradient">
+                  Latest Posts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {latestVideos.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No videos posted yet</p>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Character</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Posted</TableHead>
+                          <TableHead className="w-[100px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {latestVideos.map((video) => (
+                          <TableRow key={video.id}>
+                            <TableCell className="font-medium max-w-[300px] truncate">
+                              {video.title}
+                            </TableCell>
+                            <TableCell>
+                              {video.characters?.name || "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              {video.categories?.name || "Unknown"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(video.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteVideo(video.id)}
+                                disabled={deletingVideoId === video.id}
+                                className="hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                {deletingVideoId === video.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

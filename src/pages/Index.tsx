@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import VideoCard from "@/components/VideoCard";
 import AboutSection from "@/components/AboutSection";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Search } from "lucide-react";
 
 interface Video {
   id: string;
@@ -33,12 +34,15 @@ interface Category {
 
 const Index = () => {
   const [activeCategory, setActiveCategory] = useState("edits");
-  const [displayCount, setDisplayCount] = useState(5);
+  const [displayCount, setDisplayCount] = useState(12);
   const [videos, setVideos] = useState<Video[]>([]);
   const [charactersWithVideos, setCharactersWithVideos] = useState<CharacterWithVideos[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [loading, setLoading] = useState(true);
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterWithVideos | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [randomizedCharacters, setRandomizedCharacters] = useState<CharacterWithVideos[]>([]);
+  const observerTarget = useRef(null);
 
   useEffect(() => {
     loadData();
@@ -94,7 +98,11 @@ const Index = () => {
         }
       });
       
-      setCharactersWithVideos(Object.values(charactersMap).filter(char => char.videos.length > 0));
+      const allCharacters = Object.values(charactersMap).filter(char => char.videos.length > 0);
+      setCharactersWithVideos(allCharacters);
+      // Randomize characters
+      const randomized = [...allCharacters].sort(() => Math.random() - 0.5);
+      setRandomizedCharacters(randomized);
       setVideos(standaloneVideos);
     }
 
@@ -129,26 +137,57 @@ const Index = () => {
         return category?.name.toLowerCase() === activeCategory.toLowerCase();
       });
 
-  const filteredCharacters = activeCategory === "edits" || activeCategory === "all"
+  // Search across all categories
+  const searchFilteredCharacters = searchQuery
+    ? randomizedCharacters.filter((char) =>
+        char.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : activeCategory === "edits" || activeCategory === "all"
     ? []
-    : charactersWithVideos.filter((char) => {
+    : randomizedCharacters.filter((char) => {
         const category = categories[char.category_id];
         return category?.name.toLowerCase() === activeCategory.toLowerCase();
       });
 
   const displayedVideos = filteredVideos.slice(0, displayCount);
-  const displayedCharacters = filteredCharacters.slice(0, displayCount);
+  const displayedCharacters = searchFilteredCharacters.slice(0, displayCount);
   const hasMoreVideos = displayCount < filteredVideos.length;
-  const hasMoreCharacters = displayCount < filteredCharacters.length;
+  const hasMoreCharacters = displayCount < searchFilteredCharacters.length;
 
-  const loadMore = () => {
-    setDisplayCount(prev => prev + 5);
-  };
+  const loadMore = useCallback(() => {
+    if (hasMoreCharacters || hasMoreVideos) {
+      setDisplayCount(prev => prev + 12);
+    }
+  }, [hasMoreCharacters, hasMoreVideos]);
+
+  // Infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [loadMore]);
 
   const handleCategoryChange = (categoryId: string) => {
     setActiveCategory(categoryId);
     setSelectedCharacter(null);
-    setDisplayCount(5);
+    setDisplayCount(12);
+    setSearchQuery("");
   };
 
   const categoryButtons = [
@@ -163,6 +202,23 @@ const Index = () => {
       <Navigation />
 
       <main className="container mx-auto px-4 py-8">
+        {/* Search Bar */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Search characters across all categories..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setDisplayCount(12);
+              }}
+              className="pl-10 py-6 text-lg bg-card border-primary/20 focus:border-primary"
+            />
+          </div>
+        </div>
+
         {/* Category Filter Buttons */}
         <div className="flex flex-wrap gap-3 mb-8 justify-center">
           {categoryButtons.map((category) => (
@@ -209,17 +265,7 @@ const Index = () => {
                 ))}
               </div>
               
-              {hasMoreVideos && (
-                <div className="flex justify-center mt-8">
-                  <Button
-                    onClick={loadMore}
-                    size="lg"
-                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
-                  >
-                    Load More Videos
-                  </Button>
-                </div>
-              )}
+              {hasMoreVideos && <div ref={observerTarget} className="h-10" />}
             </>
           )
         ) : selectedCharacter ? (
@@ -263,13 +309,13 @@ const Index = () => {
           </div>
         ) : (
           // Character List View - Show character cards
-          filteredCharacters.length === 0 ? (
+          displayedCharacters.length === 0 ? (
             <div className="text-center py-16">
               <h2 className="text-2xl font-orbitron text-muted-foreground mb-4">
-                No characters yet
+                {searchQuery ? "No characters found" : "No characters yet"}
               </h2>
               <p className="text-muted-foreground">
-                Check back soon for new content!
+                {searchQuery ? "Try a different search term" : "Check back soon for new content!"}
               </p>
             </div>
           ) : (
@@ -309,17 +355,7 @@ const Index = () => {
                 ))}
               </div>
               
-              {hasMoreCharacters && (
-                <div className="flex justify-center mt-8">
-                  <Button
-                    onClick={loadMore}
-                    size="lg"
-                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 hover-glow"
-                  >
-                    Load More Characters
-                  </Button>
-                </div>
-              )}
+              {hasMoreCharacters && <div ref={observerTarget} className="h-10 mt-8" />}
             </>
           )
         )}

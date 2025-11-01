@@ -51,13 +51,31 @@ export const RequestDialog = () => {
 
     setLoading(true);
 
+    // Check if request already exists
+    const { data: existingRequest } = await supabase
+      .from("character_requests")
+      .select("*")
+      .ilike("character_name", requestName.trim())
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (existingRequest) {
+      toast.error("This character has already been requested");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase
       .from("character_requests")
       .insert([{ character_name: requestName.trim() }]);
 
     if (error) {
-      toast.error("Failed to submit request");
-      console.error(error);
+      if (error.code === '23505') { // Unique constraint violation
+        toast.error("This character has already been requested");
+      } else {
+        toast.error("Failed to submit request");
+        console.error(error);
+      }
     } else {
       toast.success("Character request submitted!");
       setRequestName("");

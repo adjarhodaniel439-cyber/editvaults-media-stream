@@ -21,7 +21,8 @@ export const RequestDialog = () => {
   const [loading, setLoading] = useState(false);
 
   const loadRequests = async () => {
-    const { data, error } = await supabase
+    // Load all requests
+    const { data: requests, error } = await supabase
       .from("character_requests")
       .select("*")
       .order("status", { ascending: true })
@@ -32,7 +33,48 @@ export const RequestDialog = () => {
       return;
     }
 
-    setRequests(data || []);
+    // Load all existing characters
+    const { data: characters } = await supabase
+      .from("characters")
+      .select("name");
+
+    // Normalize character names for comparison
+    const normalizedCharacterNames = (characters || []).map(char => 
+      char.name.toLowerCase().replace(/[\s-]/g, '')
+    );
+
+    // Check for pending requests that match existing characters
+    const pendingRequests = (requests || []).filter(req => req.status === 'pending');
+    const requestsToFulfill: string[] = [];
+
+    pendingRequests.forEach(request => {
+      const normalizedRequestName = request.character_name.toLowerCase().replace(/[\s-]/g, '');
+      if (normalizedCharacterNames.includes(normalizedRequestName)) {
+        requestsToFulfill.push(request.id);
+      }
+    });
+
+    // Auto-fulfill matching requests
+    if (requestsToFulfill.length > 0) {
+      await supabase
+        .from("character_requests")
+        .update({
+          status: "fulfilled",
+          fulfilled_at: new Date().toISOString()
+        })
+        .in("id", requestsToFulfill);
+
+      // Reload requests after updating
+      const { data: updatedRequests } = await supabase
+        .from("character_requests")
+        .select("*")
+        .order("status", { ascending: true })
+        .order("created_at", { ascending: false });
+
+      setRequests(updatedRequests || []);
+    } else {
+      setRequests(requests || []);
+    }
   };
 
   useEffect(() => {

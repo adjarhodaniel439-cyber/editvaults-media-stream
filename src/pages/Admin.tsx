@@ -214,17 +214,34 @@ const Admin = () => {
       }
 
       // Check for matching character requests and mark them as fulfilled
-      const { error: updateError } = await supabase
+      // Normalize the character name for comparison (remove spaces, hyphens, lowercase)
+      const normalizedName = validatedData.name.toLowerCase().replace(/[\s-]/g, '');
+      
+      // Get all pending requests
+      const { data: pendingRequests } = await supabase
         .from("character_requests")
-        .update({ 
-          status: "fulfilled",
-          fulfilled_at: new Date().toISOString()
-        })
-        .eq("character_name", validatedData.name)
+        .select("*")
         .eq("status", "pending");
 
-      if (updateError) {
-        console.error("Error updating requests:", updateError);
+      // Find matching requests by normalizing their names too
+      const matchingRequests = (pendingRequests || []).filter(request => {
+        const normalizedRequestName = request.character_name.toLowerCase().replace(/[\s-]/g, '');
+        return normalizedRequestName === normalizedName;
+      });
+
+      // Update all matching requests
+      if (matchingRequests.length > 0) {
+        const { error: updateError } = await supabase
+          .from("character_requests")
+          .update({ 
+            status: "fulfilled",
+            fulfilled_at: new Date().toISOString()
+          })
+          .in("id", matchingRequests.map(r => r.id));
+
+        if (updateError) {
+          console.error("Error updating requests:", updateError);
+        }
       }
 
       toast.success("Character created successfully!");

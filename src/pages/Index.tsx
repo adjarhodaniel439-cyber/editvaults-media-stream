@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import VideoCard from "@/components/VideoCard";
 import AboutSection from "@/components/AboutSection";
+import { RequestDialog } from "@/components/RequestDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search } from "lucide-react";
@@ -232,22 +233,23 @@ const Index = () => {
       <Navigation />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Search Bar */}
-        <div className="max-w-2xl mx-auto mb-8" ref={searchRef}>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
-            <Input
-              type="text"
-              placeholder="Search characters across all categories..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setDisplayCount(12);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              className="pl-10 py-6 text-lg bg-card border-primary/20 focus:border-primary"
-            />
+        {/* Search Bar and Request Button */}
+        <div className="flex gap-2 max-w-2xl mx-auto mb-8 items-center">
+          <div className="flex-1 relative" ref={searchRef}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
+              <Input
+                type="text"
+                placeholder="Search characters across all categories..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setDisplayCount(12);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                className="pl-10 py-6 text-lg bg-card border-primary/20 focus:border-primary"
+              />
             
             {/* Search Suggestions Dropdown */}
             {showSuggestions && searchQuery && searchSuggestions.length > 0 && (
@@ -281,7 +283,9 @@ const Index = () => {
                 ))}
               </div>
             )}
+            </div>
           </div>
+          <RequestDialog />
         </div>
 
         {/* Category Filter Buttons */}

@@ -213,6 +213,20 @@ const Admin = () => {
         return;
       }
 
+      // Check for matching character requests and mark them as fulfilled
+      const { error: updateError } = await supabase
+        .from("character_requests")
+        .update({ 
+          status: "fulfilled",
+          fulfilled_at: new Date().toISOString()
+        })
+        .eq("character_name", validatedData.name)
+        .eq("status", "pending");
+
+      if (updateError) {
+        console.error("Error updating requests:", updateError);
+      }
+
       toast.success("Character created successfully!");
       setNewCharacterName("");
       setNewCharacterImage(null);

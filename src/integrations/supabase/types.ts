@@ -32,6 +32,30 @@ export type Database = {
         }
         Relationships: []
       }
+      character_requests: {
+        Row: {
+          character_name: string
+          created_at: string
+          fulfilled_at: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          character_name: string
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          character_name?: string
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       characters: {
         Row: {
           category_id: string
